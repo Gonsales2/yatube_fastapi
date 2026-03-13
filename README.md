@@ -1,3 +1,5 @@
+Yatube on FastAPI
+
 1. git clone
 2. python -m venv venv
 3. source venv/Scripts/activate
