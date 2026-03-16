@@ -16,6 +16,7 @@ class UserRepository(BaseRepository[User]):
         return self.db.query(User).filter(User.email == email).first()
     
     def create_user(self, username: str, email: str, password: str) -> User:
+        password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
         hashed_password = pwd_context.hash(password)
         return self.create({
             "username": username,

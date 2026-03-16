@@ -1,49 +1,48 @@
 """Dependencies for FastAPI application."""
 
 from fastapi import Depends, HTTPException, Security, status
-from fastapi.security import APIKeyHeader
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.repositories.user_repo import UserRepository
+from jose import jwt, JWTError
+from app.config import settings
 
-
-oauth2_scheme = APIKeyHeader(name="Authorization", auto_error=False)
-
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/api-token-auth/", auto_error=False)
 
 def get_current_user(
     token: str = Security(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
-    """Get current user from authentication token.
-
-    Args:
-        token: Authentication token from Authorization header
-        db: Database session
-
-    Returns:
-        User: Current authenticated user
-
-    Raises:
-        HTTPException: If token is invalid or user not found
-    """
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Необходима аутентификация",
-            headers={"WWW-Authenticate": "Token"},
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
-    if token.startswith("Token "):
-        token = token.replace("Token ", "", 1)
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Неверный токен",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверный токен",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     repo = UserRepository(db)
-    user = repo.get_by_username(token)
-
+    user = repo.get_by_username(username)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверный токен"
+            detail="Пользователь не найден",
         )
-
     return user
