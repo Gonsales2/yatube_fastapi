@@ -6,7 +6,10 @@ from app.api.deps import get_db, get_current_user
 from app.repositories.group_repo import GroupRepository
 from app.schemas.group import GroupResponse
 from app.models.user import User
-
+from app.use_cases.group_use_case import GroupUseCase
+from app.repositories.group_repo import GroupRepository
+from app.exceptions import AppException
+from app.api.exception_handler import domain_to_http_exception
 router = APIRouter()
 
 
@@ -17,9 +20,12 @@ def read_groups(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Получить список групп (только для авторизованных пользователей)."""
-    repo = GroupRepository(db)
-    return repo.get_all(skip=skip, limit=limit)
+    try:
+        repo = GroupRepository(db)
+        use_case = GroupUseCase(repo)
+        return use_case.get_groups(skip=skip, limit=limit)
+    except AppException as e:
+        raise domain_to_http_exception(e)
 
 
 @router.get("/{group_id}", response_model=GroupResponse)
@@ -28,14 +34,9 @@ def read_group(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Получить информацию о группе по ID."""
-    repo = GroupRepository(db)
-    group = repo.get(group_id)
-    
-    if not group:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Группа не найдена"
-        )
-    
-    return group
+    try:
+        repo = GroupRepository(db)
+        use_case = GroupUseCase(repo)
+        return use_case.get_group(group_id=group_id)
+    except AppException as e:
+        raise domain_to_http_exception(e)

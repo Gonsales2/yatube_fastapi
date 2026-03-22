@@ -8,3 +8,7 @@ Yatube on FastAPI
 6. alembic revision --autogenerate -m "1_ready"
 7. alembic upgrade head
 8. uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+
+Если не работает авторизация
+pip install --upgrade "passlib[bcrypt]"
+pip install bcrypt==3.2.2

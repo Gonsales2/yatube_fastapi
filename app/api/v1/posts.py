@@ -1,13 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Path
+from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List
 
 from app.api.deps import get_db, get_current_user
+from app.models.user import User
 from app.repositories.post_repo import PostRepository
 from app.repositories.group_repo import GroupRepository
 from app.schemas.post import PostCreate, PostResponse, PostUpdate
-from app.models.user import User
-from app.models.post import Post
+from app.use_cases.post_use_case import PostUseCase
+from app.exceptions import AppException
+from app.api.exception_handler import domain_to_http_exception
 
 router = APIRouter()
 
@@ -20,8 +22,13 @@ def read_posts(
     current_user: User = Depends(get_current_user)
 ):
     """Получить список постов."""
-    repo = PostRepository(db)
-    return repo.get_all(skip=skip, limit=limit)
+    try:
+        post_repo = PostRepository(db)
+        group_repo = GroupRepository(db)
+        use_case = PostUseCase(post_repo, group_repo)
+        return use_case.get_posts(skip=skip, limit=limit)
+    except AppException as e:
+        raise domain_to_http_exception(e)
 
 
 @router.get("/{post_id}", response_model=PostResponse)
@@ -31,16 +38,13 @@ def read_post(
     current_user: User = Depends(get_current_user)
 ):
     """Получить пост по ID."""
-    repo = PostRepository(db)
-    post = repo.get(post_id)
-    
-    if not post:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пост не найден"
-        )
-    
-    return post
+    try:
+        post_repo = PostRepository(db)
+        group_repo = GroupRepository(db)
+        use_case = PostUseCase(post_repo, group_repo)
+        return use_case.get_post(post_id=post_id)
+    except AppException as e:
+        raise domain_to_http_exception(e)
 
 
 @router.post("/", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
@@ -50,19 +54,13 @@ def create_post(
     current_user: User = Depends(get_current_user)
 ):
     """Создать новый пост."""
-    if post_in.group is not None:
+    try:
+        post_repo = PostRepository(db)
         group_repo = GroupRepository(db)
-        if not group_repo.get(post_in.group):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Группа с указанным id не существует"
-            )
-    
-    repo = PostRepository(db)
-    create_data = post_in.model_dump()
-    create_data["author_id"] = current_user.id
-    
-    return repo.create(create_data)
+        use_case = PostUseCase(post_repo, group_repo)
+        return use_case.create_post(user=current_user, post_in=post_in)
+    except AppException as e:
+        raise domain_to_http_exception(e)
 
 
 @router.patch("/{post_id}", response_model=PostResponse)
@@ -73,31 +71,18 @@ def update_post_partial(
     current_user: User = Depends(get_current_user)
 ):
     """Частично обновить пост (автор)."""
-    repo = PostRepository(db)
-    post = repo.get(post_id)
-    
-    if not post:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пост не найден"
-        )
-    
-    if not repo.can_modify(post, current_user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Изменение чужого контента запрещено!"
-        )
-
-    if post_in.group is not None:
+    try:
+        post_repo = PostRepository(db)
         group_repo = GroupRepository(db)
-        if not group_repo.get(post_in.group):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Группа с указанным id не существует"
-            )
-    
-    update_data = post_in.model_dump(exclude_unset=True)
-    return repo.update(post, update_data)
+        use_case = PostUseCase(post_repo, group_repo)
+        return use_case.update_post(
+            user=current_user,
+            post_id=post_id,
+            post_in=post_in,
+            full_update=False
+        )
+    except AppException as e:
+        raise domain_to_http_exception(e)
 
 
 @router.put("/{post_id}", response_model=PostResponse)
@@ -108,37 +93,18 @@ def update_post_full(
     current_user: User = Depends(get_current_user)
 ):
     """Полностью обновить пост (автор)."""
-    repo = PostRepository(db)
-    post = repo.get(post_id)
-    
-    if not post:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пост не найден"
-        )
-    
-    if not repo.can_modify(post, current_user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Изменение чужого контента запрещено!"
-        )
-
-    if not post_in.text:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Поле text обязательно для PUT-запроса"
-        )
-
-    if post_in.group is not None:
+    try:
+        post_repo = PostRepository(db)
         group_repo = GroupRepository(db)
-        if not group_repo.get(post_in.group):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Группа с указанным id не существует"
-            )
-    
-    update_data = post_in.model_dump(exclude_unset=True)
-    return repo.update(post, update_data)
+        use_case = PostUseCase(post_repo, group_repo)
+        return use_case.update_post(
+            user=current_user,
+            post_id=post_id,
+            post_in=post_in,
+            full_update=True
+        )
+    except AppException as e:
+        raise domain_to_http_exception(e)
 
 
 @router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -148,19 +114,11 @@ def delete_post(
     current_user: User = Depends(get_current_user)
 ):
     """Удалить пост (только автор)."""
-    repo = PostRepository(db)
-    post = repo.get(post_id)
-    
-    if not post:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пост не найден"
-        )
-    
-    if not repo.can_modify(post, current_user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Удаление чужого контента запрещено!"
-        )
-    
-    repo.delete(post)
+    try:
+        post_repo = PostRepository(db)
+        group_repo = GroupRepository(db)
+        use_case = PostUseCase(post_repo, group_repo)
+        use_case.delete_post(user=current_user, post_id=post_id)
+        return None
+    except AppException as e:
+        raise domain_to_http_exception(e)

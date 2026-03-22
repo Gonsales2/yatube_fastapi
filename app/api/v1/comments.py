@@ -1,20 +1,15 @@
-"""Comment endpoints for YaTube API."""
-
 from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.repositories.comment_repo import CommentRepository
 from app.repositories.post_repo import PostRepository
-from app.schemas.comment import (
-    CommentCreate,
-    CommentResponse,
-    CommentUpdate,
-)
-
+from app.schemas.comment import CommentCreate, CommentResponse, CommentUpdate
+from app.use_cases.comment_use_case import CommentUseCase
+from app.exceptions import AppException
+from app.api.exception_handler import domain_to_http_exception
 
 router = APIRouter()
 
@@ -28,15 +23,13 @@ def read_comments(
     current_user: User = Depends(get_current_user),
 ):
     """Get list of comments for a post."""
-    post_repo = PostRepository(db)
-    if not post_repo.get(post_id):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пост не найден",
-        )
-
-    repo = CommentRepository(db)
-    return repo.get_by_post(post_id=post_id, skip=skip, limit=limit)
+    try:
+        comment_repo = CommentRepository(db)
+        post_repo = PostRepository(db)
+        use_case = CommentUseCase(comment_repo, post_repo)
+        return use_case.get_comments(post_id=post_id, skip=skip, limit=limit)
+    except AppException as e:
+        raise domain_to_http_exception(e)
 
 
 @router.get("/{comment_id}", response_model=CommentResponse)
@@ -47,30 +40,16 @@ def read_comment(
     current_user: User = Depends(get_current_user),
 ):
     """Get comment by ID."""
-    post_repo = PostRepository(db)
-    if not post_repo.get(post_id):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пост не найден",
-        )
-
-    repo = CommentRepository(db)
-    comment = repo.get(comment_id)
-
-    if not comment or comment.post_id != post_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Комментарий не найден",
-        )
-
-    return comment
+    try:
+        comment_repo = CommentRepository(db)
+        post_repo = PostRepository(db)
+        use_case = CommentUseCase(comment_repo, post_repo)
+        return use_case.get_comment(post_id=post_id, comment_id=comment_id)
+    except AppException as e:
+        raise domain_to_http_exception(e)
 
 
-@router.post(
-    "/",
-    response_model=CommentResponse,
-    status_code=status.HTTP_201_CREATED,
-)
+@router.post("/", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
 def create_comment(
     post_id: int = Path(..., ge=1),
     comment_in: CommentCreate = None,
@@ -78,22 +57,17 @@ def create_comment(
     current_user: User = Depends(get_current_user),
 ):
     """Create a new comment for a post."""
-    post_repo = PostRepository(db)
-    post = post_repo.get(post_id)
-
-    if not post:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пост не найден",
+    try:
+        comment_repo = CommentRepository(db)
+        post_repo = PostRepository(db)
+        use_case = CommentUseCase(comment_repo, post_repo)
+        return use_case.create_comment(
+            user=current_user,
+            post_id=post_id,
+            comment_in=comment_in
         )
-
-    repo = CommentRepository(db)
-
-    create_data = comment_in.model_dump()
-    create_data["author_id"] = current_user.id
-    create_data["post_id"] = post_id
-
-    return repo.create(create_data)
+    except AppException as e:
+        raise domain_to_http_exception(e)
 
 
 @router.patch("/{comment_id}", response_model=CommentResponse)
@@ -105,23 +79,19 @@ def update_comment_partial(
     current_user: User = Depends(get_current_user),
 ):
     """Partially update a comment (author only)."""
-    repo = CommentRepository(db)
-    comment = repo.get(comment_id)
-
-    if not comment or comment.post_id != post_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Комментарий не найден",
+    try:
+        comment_repo = CommentRepository(db)
+        post_repo = PostRepository(db)
+        use_case = CommentUseCase(comment_repo, post_repo)
+        return use_case.update_comment(
+            user=current_user,
+            post_id=post_id,
+            comment_id=comment_id,
+            comment_in=comment_in,
+            full_update=False
         )
-
-    if not repo.can_modify(comment, current_user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Изменение чужого комментария запрещено!",
-        )
-
-    update_data = comment_in.model_dump(exclude_unset=True)
-    return repo.update(comment, update_data)
+    except AppException as e:
+        raise domain_to_http_exception(e)
 
 
 @router.put("/{comment_id}", response_model=CommentResponse)
@@ -133,29 +103,19 @@ def update_comment_full(
     current_user: User = Depends(get_current_user),
 ):
     """Fully update a comment (author only)."""
-    repo = CommentRepository(db)
-    comment = repo.get(comment_id)
-
-    if not comment or comment.post_id != post_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Комментарий не найден",
+    try:
+        comment_repo = CommentRepository(db)
+        post_repo = PostRepository(db)
+        use_case = CommentUseCase(comment_repo, post_repo)
+        return use_case.update_comment(
+            user=current_user,
+            post_id=post_id,
+            comment_id=comment_id,
+            comment_in=comment_in,
+            full_update=True
         )
-
-    if not repo.can_modify(comment, current_user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Изменение чужого комментария запрещено!",
-        )
-
-    if not comment_in.text:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Поле text обязательно для PUT-запроса",
-        )
-
-    update_data = comment_in.model_dump(exclude_unset=True)
-    return repo.update(comment, update_data)
+    except AppException as e:
+        raise domain_to_http_exception(e)
 
 
 @router.delete("/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -166,19 +126,15 @@ def delete_comment(
     current_user: User = Depends(get_current_user),
 ):
     """Delete a comment (author only)."""
-    repo = CommentRepository(db)
-    comment = repo.get(comment_id)
-
-    if not comment or comment.post_id != post_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Комментарий не найден",
+    try:
+        comment_repo = CommentRepository(db)
+        post_repo = PostRepository(db)
+        use_case = CommentUseCase(comment_repo, post_repo)
+        use_case.delete_comment(
+            user=current_user,
+            post_id=post_id,
+            comment_id=comment_id
         )
-
-    if not repo.can_modify(comment, current_user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Удаление чужого комментария запрещено!",
-        )
-
-    repo.delete(comment)
+        return None
+    except AppException as e:
+        raise domain_to_http_exception(e)
