@@ -2,7 +2,6 @@ from typing import Optional, Dict, Any
 
 
 class AppException(Exception):
-    """Базовое исключение приложения."""
     status_code: int = 500
     detail: str = "Внутренняя ошибка сервера"
     headers: Optional[Dict[str, str]] = None
@@ -22,18 +21,15 @@ class AppException(Exception):
 
 
 class InfrastructureException(AppException):
-    """Базовое исключение инфраструктуры."""
     status_code = 500
     detail = "Ошибка инфраструктуры"
 
 
 class DatabaseException(InfrastructureException):
-    """Базовое исключение базы данных."""
     detail = "Ошибка базы данных"
 
 
 class DatabaseIntegrityError(DatabaseException):
-    """Нарушение целостности БД (unique constraint, foreign key)."""
     status_code = 400
     detail = "Нарушение целостности данных"
     
@@ -45,25 +41,21 @@ class DatabaseIntegrityError(DatabaseException):
 
 
 class DatabaseConnectionError(DatabaseException):
-    """Ошибка подключения к БД."""
     status_code = 503
     detail = "Сервис временно недоступен"
 
 
 class DatabaseNotFoundError(DatabaseException):
-    """Запись не найдена в БД (низкоуровневая ошибка)."""
     status_code = 404
     detail = "Запись не найдена"
 
 
 class DomainException(AppException):
-    """Базовое исключение домена."""
     status_code = 400
     detail = "Ошибка бизнес-логики"
 
 
 class NotFoundException(DomainException):
-    """Ресурс не найден."""
     status_code = 404
     
     def __init__(
@@ -85,7 +77,6 @@ class NotFoundException(DomainException):
 
 
 class ConflictException(DomainException):
-    """Конфликт ресурсов (дубликат)."""
     status_code = 409
     
     def __init__(self, resource_type: str, field: str, value: Any, **context):
@@ -97,7 +88,6 @@ class ConflictException(DomainException):
 
 
 class PermissionDeniedException(DomainException):
-    """Доступ запрещён."""
     status_code = 403
     
     def __init__(self, action: str, resource_type: Optional[str] = None, **context):
@@ -111,7 +101,6 @@ class PermissionDeniedException(DomainException):
 
 
 class ValidationError(DomainException):
-    """Ошибка валидации бизнес-правил."""
     status_code = 400
     detail = "Ошибка валидации"
     
@@ -127,22 +116,18 @@ class ValidationError(DomainException):
 
 
 class AuthenticationException(AppException):
-    """Базовое исключение аутентификации."""
     status_code = 401
     detail = "Ошибка аутентификации"
     headers = {"WWW-Authenticate": "Bearer"}
 
 
 class InvalidCredentialsException(AuthenticationException):
-    """Неверные учётные данные."""
     detail = "Неверные учетные данные"
 
 
 class InvalidTokenException(AuthenticationException):
-    """Невалидный или истёкший токен."""
     detail = "Неверный или истёкший токен"
 
 
 class UserNotFoundException(AuthenticationException):
-    """Пользователь не найден."""
     detail = "Пользователь не найден"

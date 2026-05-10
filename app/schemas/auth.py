@@ -83,3 +83,4 @@ class UserRegister(BaseModel):
         if len(v) > 254:
             raise ValueError('Email не может быть длиннее 254 символов')
         return v
+

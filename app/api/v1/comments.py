@@ -1,6 +1,6 @@
 from typing import List
 from fastapi import APIRouter, Depends, Path, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
@@ -15,53 +15,50 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[CommentResponse])
-def read_comments(
+async def read_comments(
     post_id: int = Path(..., ge=1),
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get list of comments for a post."""
     try:
         comment_repo = CommentRepository(db)
         post_repo = PostRepository(db)
         use_case = CommentUseCase(comment_repo, post_repo)
-        return use_case.get_comments(post_id=post_id, skip=skip, limit=limit)
+        return await use_case.get_comments(post_id=post_id, skip=skip, limit=limit)
     except AppException as e:
         raise domain_to_http_exception(e)
 
 
 @router.get("/{comment_id}", response_model=CommentResponse)
-def read_comment(
+async def read_comment(
     post_id: int = Path(..., ge=1),
     comment_id: int = Path(..., ge=1),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get comment by ID."""
     try:
         comment_repo = CommentRepository(db)
         post_repo = PostRepository(db)
         use_case = CommentUseCase(comment_repo, post_repo)
-        return use_case.get_comment(post_id=post_id, comment_id=comment_id)
+        return await use_case.get_comment(post_id=post_id, comment_id=comment_id)
     except AppException as e:
         raise domain_to_http_exception(e)
 
 
 @router.post("/", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
-def create_comment(
+async def create_comment(
     post_id: int = Path(..., ge=1),
     comment_in: CommentCreate = None,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Create a new comment for a post."""
     try:
         comment_repo = CommentRepository(db)
         post_repo = PostRepository(db)
         use_case = CommentUseCase(comment_repo, post_repo)
-        return use_case.create_comment(
+        return await use_case.create_comment(
             user=current_user,
             post_id=post_id,
             comment_in=comment_in
@@ -71,19 +68,18 @@ def create_comment(
 
 
 @router.patch("/{comment_id}", response_model=CommentResponse)
-def update_comment_partial(
+async def update_comment_partial(
     post_id: int = Path(..., ge=1),
     comment_id: int = Path(..., ge=1),
     comment_in: CommentUpdate = None,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Partially update a comment (author only)."""
     try:
         comment_repo = CommentRepository(db)
         post_repo = PostRepository(db)
         use_case = CommentUseCase(comment_repo, post_repo)
-        return use_case.update_comment(
+        return await use_case.update_comment(
             user=current_user,
             post_id=post_id,
             comment_id=comment_id,
@@ -95,19 +91,18 @@ def update_comment_partial(
 
 
 @router.put("/{comment_id}", response_model=CommentResponse)
-def update_comment_full(
+async def update_comment_full(
     post_id: int = Path(..., ge=1),
     comment_id: int = Path(..., ge=1),
     comment_in: CommentUpdate = None,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Fully update a comment (author only)."""
     try:
         comment_repo = CommentRepository(db)
         post_repo = PostRepository(db)
         use_case = CommentUseCase(comment_repo, post_repo)
-        return use_case.update_comment(
+        return await use_case.update_comment(
             user=current_user,
             post_id=post_id,
             comment_id=comment_id,
@@ -119,18 +114,17 @@ def update_comment_full(
 
 
 @router.delete("/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_comment(
+async def delete_comment(
     post_id: int = Path(..., ge=1),
     comment_id: int = Path(..., ge=1),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Delete a comment (author only)."""
     try:
         comment_repo = CommentRepository(db)
         post_repo = PostRepository(db)
         use_case = CommentUseCase(comment_repo, post_repo)
-        use_case.delete_comment(
+        await use_case.delete_comment(
             user=current_user,
             post_id=post_id,
             comment_id=comment_id

@@ -6,7 +6,6 @@ from app.exceptions import (
     NotFoundException,
     PermissionDeniedException,
     ValidationError,
-    ConflictException,
 )
 from app.models.user import User
 
@@ -16,24 +15,27 @@ class PostUseCase:
         self.post_repo = post_repo
         self.group_repo = group_repo
     
-    def get_posts(self, skip: int = 0, limit: int = 100) -> List[dict]:
-        """Получить список постов."""
-        posts = self.post_repo.get_all(skip, limit)
+    async def get_posts(self, skip: int = 0, limit: int = 100) -> List[dict]:
+        posts = await self.post_repo.get_all(skip, limit)
         return [self._serialize_post(p) for p in posts]
     
-    def delete_post(self, user: User, post_id: int) -> None:
-        """Удалить пост (вызывается из API, возвращает None)."""
-        post = self.post_repo.get(post_id)
+    async def get_post(self, post_id: int) -> dict:
+        post = await self.post_repo.get(post_id)
+        if not post:
+            raise NotFoundException(resource_type="Пост", resource_id=post_id)
+        return self._serialize_post(post)
+    
+    async def delete_post(self, user: User, post_id: int) -> None:
+        post = await self.post_repo.get(post_id)
         if not post:
             raise NotFoundException(resource_type="Пост", resource_id=post_id)
         if not self.post_repo.can_modify(post, user.id):
             raise PermissionDeniedException(action="Удаление", resource_type="поста")
-        self.post_repo.delete(post)
+        await self.post_repo.delete(post)
 
-    def create_post(self, user: User, post_in: PostCreate) -> dict:
-        """Создать пост."""
+    async def create_post(self, user: User, post_in: PostCreate) -> dict:
         if post_in.group is not None:
-            group = self.group_repo.get(post_in.group)
+            group = await self.group_repo.get(post_in.group)
             if not group:
                 raise ValidationError(
                     field="group",
@@ -49,12 +51,11 @@ class PostUseCase:
         create_data = post_in.model_dump()
         create_data["author_id"] = user.id
         
-        post = self.post_repo.create(create_data)
+        post = await self.post_repo.create(create_data)
         return self._serialize_post(post)
     
-    def update_post(self, user: User, post_id: int, post_in: PostUpdate, full_update: bool = False) -> dict:
-        """Обновить пост (частично или полностью)."""
-        post = self.post_repo.get(post_id)
+    async def update_post(self, user: User, post_id: int, post_in: PostUpdate, full_update: bool = False) -> dict:
+        post = await self.post_repo.get(post_id)
         if not post:
             raise NotFoundException(resource_type="Пост", resource_id=post_id)
 
@@ -71,7 +72,7 @@ class PostUseCase:
             )
 
         if post_in.group is not None:
-            group = self.group_repo.get(post_in.group)
+            group = await self.group_repo.get(post_in.group)
             if not group:
                 raise ValidationError(
                     field="group",
@@ -79,12 +80,11 @@ class PostUseCase:
                 )
         
         update_data = post_in.model_dump(exclude_unset=True)
-        updated_post = self.post_repo.update(post, update_data)
+        updated_post = await self.post_repo.update(post, update_data)
         return self._serialize_post(updated_post)
     
     @staticmethod
     def _serialize_post(post) -> dict:
-        """Сериализация модели в dict для ответа."""
         return {
             "id": post.id,
             "author": post.author.username if post.author else None,

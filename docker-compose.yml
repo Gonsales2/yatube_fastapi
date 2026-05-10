@@ -1,12 +1,30 @@
 services:
-  backend:
+  web:
     build: .
-    container_name: yatube_api
-    env_file:
-      - .env
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - .:/app
+      - media_volume:/app/media
     ports:
       - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
     environment:
-      - PYTHONPATH=/app
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=yatube
+    ports:
+      - "15432:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  media_volume:

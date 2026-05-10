@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database.base import Base
+
 
 class Post(Base):
     __tablename__ = "posts_post"
@@ -10,7 +11,7 @@ class Post(Base):
     text = Column(Text, nullable=False)
     pub_date = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     author_id = Column(Integer, ForeignKey("auth_user.id"), nullable=False, index=True)
-    image = Column(String(100), nullable=True)
+    image = Column(String(500), nullable=True) 
     group_id = Column(Integer, ForeignKey("posts_group.id"), nullable=True)
 
     author = relationship("User", back_populates="posts")

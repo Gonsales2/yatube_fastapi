@@ -14,28 +14,25 @@ class CommentUseCase:
         self.comment_repo = comment_repo
         self.post_repo = post_repo
     
-    def get_comments(self, post_id: int, skip: int = 0, limit: int = 100) -> list:
-        """Получить список комментариев поста."""
-        if not self.post_repo.get(post_id):
+    async def get_comments(self, post_id: int, skip: int = 0, limit: int = 100) -> list:
+        if not await self.post_repo.get(post_id):
             raise NotFoundException(resource_type="Пост", resource_id=post_id)
         
-        comments = self.comment_repo.get_by_post(post_id, skip, limit)
+        comments = await self.comment_repo.get_by_post(post_id, skip, limit)
         return [self._serialize(c) for c in comments]
     
-    def get_comment(self, post_id: int, comment_id: int) -> dict:
-        """Получить конкретный комментарий."""
-        if not self.post_repo.get(post_id):
+    async def get_comment(self, post_id: int, comment_id: int) -> dict:
+        if not await self.post_repo.get(post_id):
             raise NotFoundException(resource_type="Пост", resource_id=post_id)
         
-        comment = self.comment_repo.get(comment_id)
+        comment = await self.comment_repo.get(comment_id)
         if not comment or comment.post_id != post_id:
             raise NotFoundException(resource_type="Комментарий", resource_id=comment_id)
         
         return self._serialize(comment)
     
-    def create_comment(self, user: User, post_id: int, comment_in: CommentCreate) -> dict:
-        """Создать комментарий."""
-        if not self.post_repo.get(post_id):
+    async def create_comment(self, user: User, post_id: int, comment_in: CommentCreate) -> dict:
+        if not await self.post_repo.get(post_id):
             raise NotFoundException(resource_type="Пост", resource_id=post_id)
 
         if len(comment_in.text.strip()) < 2:
@@ -47,13 +44,12 @@ class CommentUseCase:
         create_data = comment_in.model_dump()
         create_data.update({"author_id": user.id, "post_id": post_id})
         
-        comment = self.comment_repo.create(create_data)
+        comment = await self.comment_repo.create(create_data)
         return self._serialize(comment)
     
-    def update_comment(self, user: User, post_id: int, comment_id: int, 
+    async def update_comment(self, user: User, post_id: int, comment_id: int, 
                        comment_in: CommentUpdate, full_update: bool = False) -> dict:
-        """Обновить комментарий."""
-        comment = self.comment_repo.get(comment_id)
+        comment = await self.comment_repo.get(comment_id)
         if not comment or comment.post_id != post_id:
             raise NotFoundException(resource_type="Комментарий", resource_id=comment_id)
         
@@ -64,19 +60,18 @@ class CommentUseCase:
             raise ValidationError(field="text", message="Текст обязателен для полного обновления")
         
         update_data = comment_in.model_dump(exclude_unset=True)
-        updated = self.comment_repo.update(comment, update_data)
+        updated = await self.comment_repo.update(comment, update_data)
         return self._serialize(updated)
     
-    def delete_comment(self, user: User, post_id: int, comment_id: int) -> None:
-        """Удалить комментарий."""
-        comment = self.comment_repo.get(comment_id)
+    async def delete_comment(self, user: User, post_id: int, comment_id: int) -> None:
+        comment = await self.comment_repo.get(comment_id)
         if not comment or comment.post_id != post_id:
             raise NotFoundException(resource_type="Комментарий", resource_id=comment_id)
         
         if not self.comment_repo.can_modify(comment, user.id):
             raise PermissionDeniedException(action="Удаление", resource_type="комментария")
         
-        self.comment_repo.delete(comment)
+        await self.comment_repo.delete(comment)
     
     @staticmethod
     def _serialize(comment) -> dict:

@@ -1,11 +1,13 @@
-from app.use_cases.auth_use_case import AuthUseCase
-from app.use_cases.post_use_case import PostUseCase
-from app.use_cases.comment_use_case import CommentUseCase
-from app.use_cases.group_use_case import GroupUseCase
+from app.repositories.base import BaseRepositoryAsync
+from app.repositories.user_repo import UserRepository
+from app.repositories.group_repo import GroupRepository
+from app.repositories.post_repo import PostRepository
+from app.repositories.comment_repo import CommentRepository
 
 __all__ = [
-    "AuthUseCase",
-    "PostUseCase", 
-    "CommentUseCase",
-    "GroupUseCase",
+    "BaseRepositoryAsync",
+    "UserRepository",
+    "GroupRepository", 
+    "PostRepository",
+    "CommentRepository",
 ]

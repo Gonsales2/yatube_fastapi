@@ -1,16 +1,17 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.models.group import Group
-from app.repositories.base import BaseRepository
-from sqlalchemy.exc import OperationalError
-from app.exceptions import DatabaseConnectionError
+from app.repositories.base import BaseRepositoryAsync
 
 
-class GroupRepository(BaseRepository[Group]):
-    def __init__(self, db: Session):
+class GroupRepository(BaseRepositoryAsync[Group]):
+    def __init__(self, db: AsyncSession):
         super().__init__(Group, db)
 
-    def get_by_slug(self, slug: str):
+    async def get_by_slug(self, slug: str):
         try:
-            return self.db.query(Group).filter(Group.slug == slug).first()
-        except OperationalError as e:
+            stmt = select(Group).filter(Group.slug == slug)
+            result = await self.db.execute(stmt)
+            return result.scalar_one_or_none()
+        except Exception as e:
             raise DatabaseConnectionError() from e

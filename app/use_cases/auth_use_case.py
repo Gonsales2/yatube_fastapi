@@ -8,26 +8,12 @@ from app.exceptions import (
 
 
 class AuthUseCase:
-    """
-    Бизнес-логика аутентификации.
-    Отвечает за:
-    - Валидацию учётных данных
-    - Проверку уникальности username/email
-    - Обогащение ошибок инфраструктурного слоя бизнес-контекстом
-    """
-    
+
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
     
-    def authenticate(self, credentials: UserAuth) -> dict:
-        """
-        Аутентифицировать пользователя.
-        Returns:
-            dict с данными пользователя для создания токена
-        Raises:
-            InvalidCredentialsException: если username/password неверны
-        """
-        user = self.user_repo.get_by_username(credentials.username)
+    async def authenticate(self, credentials: UserAuth) -> dict:
+        user = await self.user_repo.get_by_username(credentials.username)
         
         if not user:
             raise InvalidCredentialsException()
@@ -41,16 +27,8 @@ class AuthUseCase:
             "email": user.email,
         }
     
-    def register(self, user_in: UserRegister) -> dict:
-        """
-        Зарегистрировать нового пользователя.
-        Returns:
-            dict с данными созданного пользователя 
-        Raises:
-            ConflictException: если username или email уже заняты
-            ValidationError: если данные не проходят бизнес-валидацию
-        """
-        existing = self.user_repo.get_by_username(user_in.username)
+    async def register(self, user_in: UserRegister) -> dict:
+        existing = await self.user_repo.get_by_username(user_in.username)
         if existing:
             raise ConflictException(
                 resource_type="Пользователь",
@@ -59,7 +37,7 @@ class AuthUseCase:
             )
         
         if user_in.email:
-            existing_email = self.user_repo.get_by_email(user_in.email)
+            existing_email = await self.user_repo.get_by_email(user_in.email)
             if existing_email:
                 raise ConflictException(
                     resource_type="Пользователь", 
@@ -74,7 +52,7 @@ class AuthUseCase:
                 message="Это имя пользователя зарезервировано"
             )
 
-        user = self.user_repo.create_user(
+        user = await self.user_repo.create_user(
             username=user_in.username,
             email=user_in.email,
             password=user_in.password,

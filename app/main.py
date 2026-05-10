@@ -2,13 +2,13 @@ import logging
 import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.api.api import api_router
 from app.config import settings
 from fastapi.exceptions import HTTPException
 from app.api.exception_handler import app_exception_handler, http_exception_handler
 from app.exceptions import AppException
 
-# Настройка базового логирования
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -23,6 +23,8 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+app.mount("/media", StaticFiles(directory=settings.MEDIA_ROOT), name="media")
+
 app.add_exception_handler(AppException, app_exception_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)
 
@@ -34,24 +36,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Middleware для логирования действий пользователей
 @app.middleware("http")
 async def log_user_actions(request: Request, call_next):
-    # Игнорируем запросы к документации API, чтобы не засорять логи
     if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
         return await call_next(request)
 
     start_time = time.time()
-    
     client_host = request.client.host if request.client else "unknown"
     method = request.method
     path = request.url.path
     
     response = await call_next(request)
-    
     process_time = time.time() - start_time
     
-    # Логирование действия
     logger.info(
         f"Action: {method} {path} | "
         f"Client: {client_host} | "
@@ -64,6 +61,5 @@ async def log_user_actions(request: Request, call_next):
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
-def root() -> dict:
-    """Root endpoint returning welcome message."""
+async def root() -> dict:
     return {"message": f"Welcome to {settings.PROJECT_NAME}"}

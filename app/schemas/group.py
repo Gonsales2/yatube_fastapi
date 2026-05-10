@@ -1,3 +1,5 @@
+import re
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -24,5 +26,4 @@ class GroupInDB(GroupBase):
 
 
 class GroupResponse(GroupInDB):
-    """Группы — только чтение"""
     pass

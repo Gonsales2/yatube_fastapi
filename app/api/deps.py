@@ -1,19 +1,26 @@
-from fastapi import Depends, Security, status, HTTPException
+from fastapi import Depends, Security, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.database.session import get_db
-from app.repositories.user_repo import UserRepository
+from app.models.user import User
 from app.config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/api-token-auth/", auto_error=True)
 
 
-def get_current_user(
+async def get_current_user(
     token: str = Security(oauth2_scheme),
-    db: Session = Depends(get_db)
-):
+    db: AsyncSession = Depends(get_db)
+) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Не удалось проверить учетные данные",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
     try:
         payload = jwt.decode(
             token, 
@@ -22,24 +29,15 @@ def get_current_user(
         )
         username: str = payload.get("sub")
         if username is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Неверный токен",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            raise credentials_exception
     except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверный или истёкший токен",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise credentials_exception
 
-    repo = UserRepository(db)
-    user = repo.get_by_username(username)
+    stmt = select(User).where(User.username == username)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    
     if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Пользователь не найден",
-        )
+        raise credentials_exception
     
     return user

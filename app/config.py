@@ -14,10 +14,11 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api"
     
-    DATABASE_URL: str = f"sqlite:///{BASE_DIR}/db.sqlite3"
+    DATABASE_URL: str
     SECRET_KEY: str
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    MEDIA_ROOT: str = str(BASE_DIR / "media")
     
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -27,3 +28,5 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+Path(settings.MEDIA_ROOT).mkdir(parents=True, exist_ok=True)

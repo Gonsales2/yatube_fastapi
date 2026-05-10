@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Path, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 from app.api.deps import get_db, get_current_user
@@ -15,67 +15,63 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[PostResponse])
-def read_posts(
+async def read_posts(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Получить список постов."""
     try:
         post_repo = PostRepository(db)
         group_repo = GroupRepository(db)
         use_case = PostUseCase(post_repo, group_repo)
-        return use_case.get_posts(skip=skip, limit=limit)
+        return await use_case.get_posts(skip=skip, limit=limit)
     except AppException as e:
         raise domain_to_http_exception(e)
 
 
 @router.get("/{post_id}", response_model=PostResponse)
-def read_post(
+async def read_post(
     post_id: int = Path(..., ge=1),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Получить пост по ID."""
     try:
         post_repo = PostRepository(db)
         group_repo = GroupRepository(db)
         use_case = PostUseCase(post_repo, group_repo)
-        return use_case.get_post(post_id=post_id)
+        return await use_case.get_post(post_id=post_id)
     except AppException as e:
         raise domain_to_http_exception(e)
 
 
 @router.post("/", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
-def create_post(
+async def create_post(
     post_in: PostCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Создать новый пост."""
     try:
         post_repo = PostRepository(db)
         group_repo = GroupRepository(db)
         use_case = PostUseCase(post_repo, group_repo)
-        return use_case.create_post(user=current_user, post_in=post_in)
+        return await use_case.create_post(user=current_user, post_in=post_in)
     except AppException as e:
         raise domain_to_http_exception(e)
 
 
 @router.patch("/{post_id}", response_model=PostResponse)
-def update_post_partial(
+async def update_post_partial(
     post_id: int = Path(..., ge=1),
     post_in: PostUpdate = None,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Частично обновить пост (автор)."""
     try:
         post_repo = PostRepository(db)
         group_repo = GroupRepository(db)
         use_case = PostUseCase(post_repo, group_repo)
-        return use_case.update_post(
+        return await use_case.update_post(
             user=current_user,
             post_id=post_id,
             post_in=post_in,
@@ -86,18 +82,17 @@ def update_post_partial(
 
 
 @router.put("/{post_id}", response_model=PostResponse)
-def update_post_full(
+async def update_post_full(
     post_id: int = Path(..., ge=1),
     post_in: PostUpdate = None,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Полностью обновить пост (автор)."""
     try:
         post_repo = PostRepository(db)
         group_repo = GroupRepository(db)
         use_case = PostUseCase(post_repo, group_repo)
-        return use_case.update_post(
+        return await use_case.update_post(
             user=current_user,
             post_id=post_id,
             post_in=post_in,
@@ -108,17 +103,16 @@ def update_post_full(
 
 
 @router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(
+async def delete_post(
     post_id: int = Path(..., ge=1),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Удалить пост (только автор)."""
     try:
         post_repo = PostRepository(db)
         group_repo = GroupRepository(db)
         use_case = PostUseCase(post_repo, group_repo)
-        use_case.delete_post(user=current_user, post_id=post_id)
+        await use_case.delete_post(user=current_user, post_id=post_id)
         return None
     except AppException as e:
         raise domain_to_http_exception(e)

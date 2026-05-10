@@ -1,8 +1,8 @@
-"""1_initial_migration
+"""1_ready
 
-Revision ID: fc31c346a323
+Revision ID: 2ccfda989357
 Revises: 
-Create Date: 2026-03-13 23:46:41.084325
+Create Date: 2026-05-04 01:00:01.908751
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'fc31c346a323'
+revision: str = '2ccfda989357'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -30,7 +30,7 @@ def upgrade() -> None:
     sa.Column('is_staff', sa.Boolean(), nullable=True),
     sa.Column('is_active', sa.Boolean(), nullable=True),
     sa.Column('is_superuser', sa.Boolean(), nullable=True),
-    sa.Column('date_joined', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('date_joined', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email')
     )
@@ -48,9 +48,9 @@ def upgrade() -> None:
     op.create_table('posts_post',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('text', sa.Text(), nullable=False),
-    sa.Column('pub_date', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('pub_date', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('author_id', sa.Integer(), nullable=False),
-    sa.Column('image', sa.String(length=100), nullable=True),
+    sa.Column('image', sa.String(length=500), nullable=True),
     sa.Column('group_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['author_id'], ['auth_user.id'], ),
     sa.ForeignKeyConstraint(['group_id'], ['posts_group.id'], ),
@@ -62,7 +62,7 @@ def upgrade() -> None:
     op.create_table('posts_comment',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('text', sa.Text(), nullable=False),
-    sa.Column('created', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('created', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('author_id', sa.Integer(), nullable=False),
     sa.Column('post_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['author_id'], ['auth_user.id'], ),
