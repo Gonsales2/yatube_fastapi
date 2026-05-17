@@ -18,47 +18,41 @@ router = APIRouter()
 async def obtain_auth_token(
     username: str = Form(...),
     password: str = Form(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     try:
         repo = UserRepository(db)
         use_case = AuthUseCase(repo)
 
-        credentials = type('UserAuth', (), {'username': username, 'password': password})()
+        credentials = type(
+            "UserAuth", (), {"username": username, "password": password}
+        )()
         auth_data = await use_case.authenticate(credentials)
 
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         to_encode = {
             "sub": auth_data["username"],
-            "exp": datetime.utcnow() + access_token_expires
+            "exp": datetime.utcnow() + access_token_expires,
         }
-        
+
         encoded_jwt = jwt.encode(
-            to_encode, 
-            settings.SECRET_KEY, 
-            algorithm=settings.ALGORITHM
+            to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
         )
-        
-        return Token(
-            access_token=encoded_jwt,
-            token_type="bearer"
-        )
-        
+
+        return Token(access_token=encoded_jwt, token_type="bearer")
+
     except AppException as e:
         raise domain_to_http_exception(e)
 
 
 @router.post("/register/", status_code=status.HTTP_201_CREATED)
-async def register_user(
-    user_in: UserRegister,
-    db: AsyncSession = Depends(get_db)
-):
+async def register_user(user_in: UserRegister, db: AsyncSession = Depends(get_db)):
     try:
         repo = UserRepository(db)
         use_case = AuthUseCase(repo)
-        
+
         result = await use_case.register(user_in)
         return result
-        
+
     except AppException as e:
         raise domain_to_http_exception(e)

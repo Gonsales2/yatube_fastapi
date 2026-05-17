@@ -12,20 +12,17 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/api-token-auth/", auto_error
 
 
 async def get_current_user(
-    token: str = Security(oauth2_scheme),
-    db: AsyncSession = Depends(get_db)
+    token: str = Security(oauth2_scheme), db: AsyncSession = Depends(get_db)
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Не удалось проверить учетные данные",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     try:
         payload = jwt.decode(
-            token, 
-            settings.SECRET_KEY, 
-            algorithms=[settings.ALGORITHM]
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         username: str = payload.get("sub")
         if username is None:
@@ -36,8 +33,8 @@ async def get_current_user(
     stmt = select(User).where(User.username == username)
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
-    
+
     if user is None:
         raise credentials_exception
-    
+
     return user

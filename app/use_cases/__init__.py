@@ -7,7 +7,7 @@ from app.repositories.comment_repo import CommentRepository
 __all__ = [
     "BaseRepositoryAsync",
     "UserRepository",
-    "GroupRepository", 
+    "GroupRepository",
     "PostRepository",
     "CommentRepository",
 ]

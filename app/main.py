@@ -10,8 +10,7 @@ from app.api.exception_handler import app_exception_handler, http_exception_hand
 from app.exceptions import AppException
 
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("yatube")
 
@@ -36,6 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.middleware("http")
 async def log_user_actions(request: Request, call_next):
     if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
@@ -45,20 +45,22 @@ async def log_user_actions(request: Request, call_next):
     client_host = request.client.host if request.client else "unknown"
     method = request.method
     path = request.url.path
-    
+
     response = await call_next(request)
     process_time = time.time() - start_time
-    
+
     logger.info(
         f"Action: {method} {path} | "
         f"Client: {client_host} | "
         f"Status: {response.status_code} | "
         f"Duration: {process_time:.3f}s"
     )
-    
+
     return response
 
+
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
 
 @app.get("/")
 async def root() -> dict:

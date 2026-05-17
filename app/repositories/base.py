@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from app.database.base import Base
 from app.exceptions import (
-    DatabaseIntegrityError, 
-    DatabaseConnectionError, 
+    DatabaseIntegrityError,
+    DatabaseConnectionError,
     DatabaseException,
 )
 
@@ -13,11 +13,11 @@ ModelType = TypeVar("ModelType", bound=Base)
 
 
 class BaseRepositoryAsync(Generic[ModelType]):
-    
+
     def __init__(self, model: Type[ModelType], db: AsyncSession):
         self.model = model
         self.db = db
-    
+
     async def get(self, id: int) -> Optional[ModelType]:
         try:
             stmt = select(self.model).where(self.model.id == id)
@@ -27,7 +27,7 @@ class BaseRepositoryAsync(Generic[ModelType]):
             raise DatabaseConnectionError() from e
         except SQLAlchemyError as e:
             raise DatabaseException() from e
-    
+
     async def get_all(self, skip: int = 0, limit: int = 100) -> List[ModelType]:
         try:
             stmt = select(self.model).offset(skip).limit(limit)
@@ -37,7 +37,7 @@ class BaseRepositoryAsync(Generic[ModelType]):
             raise DatabaseConnectionError() from e
         except SQLAlchemyError as e:
             raise DatabaseException() from e
-    
+
     async def create(self, obj_in: dict) -> ModelType:
         try:
             db_obj = self.model(**obj_in)
@@ -55,7 +55,7 @@ class BaseRepositoryAsync(Generic[ModelType]):
         except SQLAlchemyError as e:
             await self.db.rollback()
             raise DatabaseException() from e
-    
+
     async def update(self, db_obj: ModelType, obj_in: dict) -> ModelType:
         try:
             for field, value in obj_in.items():
@@ -74,7 +74,7 @@ class BaseRepositoryAsync(Generic[ModelType]):
         except SQLAlchemyError as e:
             await self.db.rollback()
             raise DatabaseException() from e
-    
+
     async def delete(self, db_obj: ModelType) -> None:
         try:
             await self.db.delete(db_obj)
@@ -89,12 +89,12 @@ class BaseRepositoryAsync(Generic[ModelType]):
         except SQLAlchemyError as e:
             await self.db.rollback()
             raise DatabaseException() from e
-    
+
     @staticmethod
     def _extract_constraint_name(error: IntegrityError) -> Optional[str]:
-        if hasattr(error, 'orig') and hasattr(error.orig, 'args'):
+        if hasattr(error, "orig") and hasattr(error.orig, "args"):
             msg = str(error.orig)
-            if 'unique constraint' in msg.lower():
+            if "unique constraint" in msg.lower():
                 parts = msg.split('"')
                 if len(parts) >= 2:
                     return parts[1]

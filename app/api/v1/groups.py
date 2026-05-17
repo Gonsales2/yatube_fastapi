@@ -18,7 +18,7 @@ async def read_groups(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     try:
         repo = GroupRepository(db)
@@ -32,7 +32,7 @@ async def read_groups(
 async def read_group(
     group_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     try:
         repo = GroupRepository(db)

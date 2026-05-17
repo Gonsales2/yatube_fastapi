@@ -19,7 +19,7 @@ async def read_posts(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     try:
         post_repo = PostRepository(db)
@@ -34,7 +34,7 @@ async def read_posts(
 async def read_post(
     post_id: int = Path(..., ge=1),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     try:
         post_repo = PostRepository(db)
@@ -49,7 +49,7 @@ async def read_post(
 async def create_post(
     post_in: PostCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     try:
         post_repo = PostRepository(db)
@@ -65,17 +65,14 @@ async def update_post_partial(
     post_id: int = Path(..., ge=1),
     post_in: PostUpdate = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     try:
         post_repo = PostRepository(db)
         group_repo = GroupRepository(db)
         use_case = PostUseCase(post_repo, group_repo)
         return await use_case.update_post(
-            user=current_user,
-            post_id=post_id,
-            post_in=post_in,
-            full_update=False
+            user=current_user, post_id=post_id, post_in=post_in, full_update=False
         )
     except AppException as e:
         raise domain_to_http_exception(e)
@@ -86,17 +83,14 @@ async def update_post_full(
     post_id: int = Path(..., ge=1),
     post_in: PostUpdate = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     try:
         post_repo = PostRepository(db)
         group_repo = GroupRepository(db)
         use_case = PostUseCase(post_repo, group_repo)
         return await use_case.update_post(
-            user=current_user,
-            post_id=post_id,
-            post_in=post_in,
-            full_update=True
+            user=current_user, post_id=post_id, post_in=post_in, full_update=True
         )
     except AppException as e:
         raise domain_to_http_exception(e)
@@ -106,7 +100,7 @@ async def update_post_full(
 async def delete_post(
     post_id: int = Path(..., ge=1),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     try:
         post_repo = PostRepository(db)

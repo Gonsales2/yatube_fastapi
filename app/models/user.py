@@ -3,9 +3,10 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database.base import Base
 
+
 class User(Base):
     __tablename__ = "auth_user"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(150), unique=True, index=True, nullable=False)
     first_name = Column(String(150), default="")
@@ -18,7 +19,9 @@ class User(Base):
     date_joined = Column(DateTime(timezone=True), server_default=func.now())
 
     posts = relationship("Post", back_populates="author", cascade="all, delete-orphan")
-    comments = relationship("Comment", back_populates="author", cascade="all, delete-orphan")
-    
+    comments = relationship(
+        "Comment", back_populates="author", cascade="all, delete-orphan"
+    )
+
     def __repr__(self):
         return f"<User(username='{self.username}')>"

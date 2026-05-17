@@ -5,12 +5,12 @@ class AppException(Exception):
     status_code: int = 500
     detail: str = "Внутренняя ошибка сервера"
     headers: Optional[Dict[str, str]] = None
-    
+
     def __init__(
-        self, 
-        detail: Optional[str] = None, 
-        headers: Optional[Dict[str, str]] = None, 
-        **context: Any
+        self,
+        detail: Optional[str] = None,
+        headers: Optional[Dict[str, str]] = None,
+        **context: Any,
     ):
         if detail:
             self.detail = detail
@@ -32,7 +32,7 @@ class DatabaseException(InfrastructureException):
 class DatabaseIntegrityError(DatabaseException):
     status_code = 400
     detail = "Нарушение целостности данных"
-    
+
     def __init__(self, constraint: Optional[str] = None, **context):
         if constraint:
             self.detail = f"Нарушение ограничения: {constraint}"
@@ -57,13 +57,13 @@ class DomainException(AppException):
 
 class NotFoundException(DomainException):
     status_code = 404
-    
+
     def __init__(
-        self, 
-        resource_type: str, 
+        self,
+        resource_type: str,
         resource_id: Optional[int] = None,
         extra_info: Optional[str] = None,
-        **context
+        **context,
     ):
         if resource_id:
             detail = f"{resource_type} с id={resource_id} не найден"
@@ -78,7 +78,7 @@ class NotFoundException(DomainException):
 
 class ConflictException(DomainException):
     status_code = 409
-    
+
     def __init__(self, resource_type: str, field: str, value: Any, **context):
         detail = f"{resource_type} с {field}='{value}' уже существует"
         super().__init__(detail=detail, **context)
@@ -89,7 +89,7 @@ class ConflictException(DomainException):
 
 class PermissionDeniedException(DomainException):
     status_code = 403
-    
+
     def __init__(self, action: str, resource_type: Optional[str] = None, **context):
         if resource_type:
             detail = f"{action} {resource_type} запрещено"
@@ -103,8 +103,10 @@ class PermissionDeniedException(DomainException):
 class ValidationError(DomainException):
     status_code = 400
     detail = "Ошибка валидации"
-    
-    def __init__(self, field: Optional[str] = None, message: Optional[str] = None, **context):
+
+    def __init__(
+        self, field: Optional[str] = None, message: Optional[str] = None, **context
+    ):
         if field and message:
             detail = f"Поле '{field}': {message}"
         elif message:

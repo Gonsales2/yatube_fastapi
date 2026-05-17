@@ -23,17 +23,17 @@ def validate_image(file: UploadFile) -> None:
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Недопустимый формат файла. Разрешены: {', '.join(ALLOWED_EXTENSIONS)}"
+            detail=f"Недопустимый формат файла. Разрешены: {', '.join(ALLOWED_EXTENSIONS)}",
         )
-    
+
     file.file.seek(0, 2)
     size = file.file.tell()
     file.file.seek(0)
-    
+
     if size > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Файл слишком большой. Максимальный размер: {MAX_FILE_SIZE // (1024*1024)}MB"
+            detail=f"Файл слишком большой. Максимальный размер: {MAX_FILE_SIZE // (1024*1024)}MB",
         )
 
 
@@ -43,20 +43,20 @@ async def save_image(file: UploadFile, subdirectory: str = "posts") -> str:
     ext = Path(file.filename).suffix.lower()
     filename = f"{uuid.uuid4()}{ext}"
     filepath = upload_dir / filename
-    async with aiofiles.open(filepath, 'wb') as f:
+    async with aiofiles.open(filepath, "wb") as f:
         content = await file.read()
         await f.write(content)
     img = Image.open(filepath)
-    if ext in ['.jpg', '.jpeg'] and img.mode in ('RGBA', 'P'):
-        rgb_img = Image.new('RGB', img.size, (255, 255, 255))
-        rgb_img.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+    if ext in [".jpg", ".jpeg"] and img.mode in ("RGBA", "P"):
+        rgb_img = Image.new("RGB", img.size, (255, 255, 255))
+        rgb_img.paste(img, mask=img.split()[-1] if img.mode == "RGBA" else None)
         img = rgb_img
 
     if img.size[0] > MAX_IMAGE_SIZE[0] or img.size[1] > MAX_IMAGE_SIZE[1]:
         img.thumbnail(MAX_IMAGE_SIZE, Image.Resampling.LANCZOS)
-    
+
     img.save(filepath, optimize=True, quality=85)
-    
+
     return f"{subdirectory}/{filename}"
 
 
@@ -66,18 +66,18 @@ async def upload_image(
     current_user: User = Depends(get_current_user),
 ):
     validate_image(file)
-    
+
     try:
         image_path = await save_image(file)
         return {
             "filename": file.filename,
             "path": image_path,
-            "url": f"/media/{image_path}"
+            "url": f"/media/{image_path}",
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ошибка при сохранении файла: {str(e)}"
+            detail=f"Ошибка при сохранении файла: {str(e)}",
         )
 
 
@@ -92,11 +92,10 @@ async def delete_image(
         full_path.resolve().relative_to(Path(settings.MEDIA_ROOT).resolve())
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Недопустимый путь к файлу"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Недопустимый путь к файлу"
         )
-    
+
     if full_path.exists():
         os.remove(full_path)
-    
+
     return None
