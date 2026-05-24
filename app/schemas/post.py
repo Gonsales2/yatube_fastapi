@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
+from app.schemas.image import ImageResponse
 from datetime import datetime
 from typing import Optional
 import re
@@ -54,6 +55,7 @@ class PostResponse(BaseModel):
     text: str
     pub_date: datetime
     image: Optional[str] = None
+    images: list[ImageResponse] = []
     group: Optional[int] = None
 
     class Config:

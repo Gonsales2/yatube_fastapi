@@ -22,6 +22,9 @@ class User(Base):
     comments = relationship(
         "Comment", back_populates="author", cascade="all, delete-orphan"
     )
+    refresh_tokens = relationship(
+        "RefreshToken", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<User(username='{self.username}')>"

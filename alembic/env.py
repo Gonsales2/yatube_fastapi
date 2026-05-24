@@ -10,9 +10,9 @@ from alembic import context
 
 # Импорт всех моделей для autogenerate
 from app.database.base import Base
-from app.models.user import User      # noqa: F401
-from app.models.group import Group    # noqa: F401
-from app.models.post import Post      # noqa: F401
+from app.models.user import User  # noqa: F401
+from app.models.group import Group  # noqa: F401
+from app.models.post import Post  # noqa: F401
 from app.models.comment import Comment  # noqa: F401
 
 # Получаем конфигурацию Alembic
@@ -33,17 +33,16 @@ def get_database_url() -> str:
     """
     # Получаем URL из переменных окружения
     database_url = os.getenv(
-        'DATABASE_URL', 
-        'postgresql+asyncpg://postgres:postgres@localhost:15432/yatube'
+        "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:15432/yatube"
     )
-    
+
     # Заменяем @db: на @localhost: для локального доступа
-    database_url = database_url.replace('@db:', '@localhost:')
-    
+    database_url = database_url.replace("@db:", "@localhost:")
+
     # Конвертируем асинхронный URL в синхронный для Alembic
-    database_url = database_url.replace('postgresql+asyncpg://', 'postgresql://')
-    database_url = database_url.replace('postgresql+psycopg://', 'postgresql://')
-    
+    database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
+    database_url = database_url.replace("postgresql+psycopg://", "postgresql://")
+
     return database_url
 
 
@@ -67,7 +66,7 @@ def run_migrations_online() -> None:
     """Запуск миграций в онлайн-режиме."""
     url = get_database_url()
     print(f"Connecting to database: {url}")
-    
+
     connectable = create_engine(
         url,
         poolclass=pool.NullPool,

@@ -1,5 +1,6 @@
 from app.repositories.group_repo import GroupRepository
-from app.exceptions import NotFoundException
+from app.exceptions import NotFoundException, ConflictException, ValidationError
+from app.schemas.group import GroupCreate
 from typing import List
 
 
@@ -22,6 +23,20 @@ class GroupUseCase:
         if not group:
             raise NotFoundException(resource_type="Группа", extra_info=f"slug='{slug}'")
         return self._serialize(group)
+
+    async def create_group(self, group_in: GroupCreate) -> dict:
+        existing = await self.group_repo.get_by_slug(group_in.slug)
+        if existing:
+            raise ConflictException(
+                resource_type="Группа",
+                field="slug",
+                value=group_in.slug,
+            )
+
+        group_data = group_in.model_dump()
+        created_group = await self.group_repo.create(group_data)
+
+        return self._serialize(created_group)
 
     @staticmethod
     def _serialize(group) -> dict:

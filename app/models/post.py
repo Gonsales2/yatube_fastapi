@@ -11,7 +11,9 @@ class Post(Base):
     text = Column(Text, nullable=False)
     pub_date = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     author_id = Column(Integer, ForeignKey("auth_user.id"), nullable=False, index=True)
-    image = Column(String(500), nullable=True)
+    images = relationship(
+        "PostImage", back_populates="post", cascade="all, delete-orphan"
+    )
     group_id = Column(Integer, ForeignKey("posts_group.id"), nullable=True)
 
     author = relationship("User", back_populates="posts")

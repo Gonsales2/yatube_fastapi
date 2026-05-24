@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.models.post import Post
 from app.repositories.base import BaseRepositoryAsync
 from app.exceptions import (
@@ -12,6 +13,27 @@ from app.exceptions import (
 class PostRepository(BaseRepositoryAsync[Post]):
     def __init__(self, db: AsyncSession):
         super().__init__(Post, db)
+
+    async def get_with_images(self, post_id: int) -> Post | None:
+        stmt = (
+            select(Post)
+            .options(selectinload(Post.images))
+            .options(selectinload(Post.author))
+            .where(Post.id == post_id)
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_all_with_images(self, skip: int = 0, limit: int = 100) -> list[Post]:
+        stmt = (
+            select(Post)
+            .options(selectinload(Post.images))
+            .options(selectinload(Post.author))
+            .offset(skip)
+            .limit(limit)
+        )
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
 
     async def create(self, obj_create: dict):
         try:

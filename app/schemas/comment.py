@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Optional
+from app.schemas.image import ImageResponse
 
 
 class CommentBase(BaseModel):
@@ -49,6 +50,7 @@ class CommentResponse(BaseModel):
     text: str
     created: datetime
     post: int
+    images: list[ImageResponse] = []
 
     class Config:
         from_attributes = True

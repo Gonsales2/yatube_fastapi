@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     )
 
 
+REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
 settings = Settings()
 
 Path(settings.MEDIA_ROOT).mkdir(parents=True, exist_ok=True)

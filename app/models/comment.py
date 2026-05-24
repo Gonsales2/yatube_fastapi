@@ -12,7 +12,12 @@ class Comment(Base):
     created = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     author_id = Column(Integer, ForeignKey("auth_user.id"), nullable=False)
     post_id = Column(Integer, ForeignKey("posts_post.id"), nullable=False)
-
+    images = relationship(
+        "CommentImage",
+        back_populates="comment",
+        cascade="all, delete-orphan",
+        order_by="CommentImage.order",
+    )
     author = relationship("User", back_populates="comments")
     post = relationship("Post", back_populates="comments")
 

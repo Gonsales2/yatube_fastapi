@@ -3,12 +3,13 @@ from httpx import AsyncClient
 from typing import Dict
 from http import HTTPStatus
 
+TEST_GROUP_ID = 1
 
 @pytest.fixture
 async def test_post(client: AsyncClient, auth_headers: Dict) -> Dict:
     """Создание тестового поста для комментариев"""
     response = await client.post(
-        "/api/", json={"text": "Post for comments"}, headers=auth_headers
+        "/api/group/{test_group['id']}/post/", json={"text": "Post for comments"}, headers=auth_headers
     )
     assert response.status_code == HTTPStatus.CREATED
     return response.json()
@@ -22,7 +23,7 @@ class TestCreateComment:
     ):
         """Успешное создание комментария"""
         response = await client.post(
-            f"/api/", json={"text": "Test comment"}, headers=auth_headers
+            f"/api/group/{group_id}/post/{test_post['id']}/", json={"text": "Test comment"}, headers=auth_headers
         )
         assert (
             response.status_code == HTTPStatus.CREATED
@@ -37,7 +38,7 @@ class TestCreateComment:
     ):
         """Создание комментария к несуществующему посту"""
         response = await client.post(
-            "/api/99999/comments/",
+            "/api/group/{group_id}/post/99999/comments/",
             json={"text": "Comment on nothing"},
             headers=auth_headers,
         )
@@ -48,7 +49,7 @@ class TestCreateComment:
         self, client: AsyncClient, auth_headers: Dict, test_post: Dict
     ):
         """Создание пустого комментария"""
-        response = await client.post(f"/api/", json={"text": ""}, headers=auth_headers)
+        response = await client.post(f"/api/group/{group_id}/post/{test_post['id']}/", json={"text": ""}, headers=auth_headers)
         assert response.status_code == HTTPStatus.UNPROCESSABLE_CONTENT
 
 
@@ -61,13 +62,13 @@ class TestReadComments:
         """Получение списка комментариев"""
         for i in range(3):
             await client.post(
-                f"/api/{test_post['id']}/comment/",
+                f"/api/group/{group_id}/post/{test_post['id']}/comment/",
                 json={"text": f"Comment {i}"},
                 headers=auth_headers,
             )
 
         response = await client.get(
-            f"/api/{test_post['id']}/comment/", headers=auth_headers
+            f"/api/group/{group_id}/post/{test_post['id']}/comment/", headers=auth_headers
         )
         assert response.status_code == HTTPStatus.OK
         assert len(response.json()) == 3
@@ -85,7 +86,7 @@ class TestReadComments:
         comment_id = create_resp.json()["id"]
 
         response = await client.get(
-            f"/api/{test_post['id']}/comment/{comment_id}", headers=auth_headers
+            f"/api/group/{group_id}/post/{test_post['id']}/comment/{comment_id}", headers=auth_headers
         )
         assert response.status_code == HTTPStatus.OK
         assert response.json()["text"] == "Specific comment"
@@ -99,7 +100,7 @@ class TestDeleteComment:
     ):
         """Удаление своего комментария"""
         create_resp = await client.post(
-            f"/api/", json={"text": "Comment to delete"}, headers=auth_headers
+            f"/api/group/{group_id}/post/{post_id}/comment/", json={"text": "Comment to delete"}, headers=auth_headers
         )
         comment_id = create_resp.json()["id"]
 

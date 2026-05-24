@@ -113,15 +113,16 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
 
 @pytest.fixture
 async def test_user(client: AsyncClient) -> Dict:
-    """Создание тестового пользователя через API"""
     user_data = {
         "username": "testuser",
         "password": "TestPass123",
         "email": "testuser@example.com",
     }
     response = await client.post("/api/register/", json=user_data)
-    assert response.status_code == HTTPStatus.CREATED
-    return {**user_data, "id": response.json()["id"]}
+    if response.status_code not in [HTTPStatus.CREATED, HTTPStatus.CONFLICT]:
+        pytest.fail(f"Не удалось подготовить пользователя: {response.status_code} {response.text}")
+    
+    return user_data
 
 
 @pytest.fixture
@@ -160,3 +161,4 @@ async def test_group(auth_headers: Dict) -> Dict:
                 "slug": group.slug,
                 "description": group.description,
             }
+

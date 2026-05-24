@@ -8,9 +8,13 @@ from app.config import settings
 from fastapi.exceptions import HTTPException
 from app.api.exception_handler import app_exception_handler, http_exception_handler
 from app.exceptions import AppException
+from dishka import make_async_container
+from dishka.integrations.fastapi import setup_dishka
+from app.di.container import container
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger("yatube")
 
@@ -21,6 +25,9 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+setup_dishka(container, app)
+
 
 app.mount("/media", StaticFiles(directory=settings.MEDIA_ROOT), name="media")
 
@@ -60,6 +67,11 @@ async def log_user_actions(request: Request, call_next):
 
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await container.close()
 
 
 @app.get("/")
