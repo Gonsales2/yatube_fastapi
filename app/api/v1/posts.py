@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Path, status, UploadFile, File 
+from fastapi import APIRouter, Depends, Path, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
@@ -44,7 +44,11 @@ async def read_post(
         raise domain_to_http_exception(e)
 
 
-@router.post("/group/{group_id}/post", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/group/{group_id}/post",
+    response_model=PostResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 @inject
 async def create_post(
     post_in: PostCreate,
@@ -89,7 +93,9 @@ async def update_post_full(
         raise domain_to_http_exception(e)
 
 
-@router.delete("/group/{group_id}/post/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/group/{group_id}/post/{post_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 @inject
 async def delete_post(
     post_id: int = Path(..., ge=1),
@@ -101,6 +107,7 @@ async def delete_post(
         return None
     except AppException as e:
         raise domain_to_http_exception(e)
+
 
 @router.post(
     "/group/{group_id}/post/{post_id}/images/",
@@ -123,4 +130,3 @@ async def add_images_to_post(
         )
     except AppException as e:
         raise domain_to_http_exception(e)
-    

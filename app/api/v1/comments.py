@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, Path, status, UploadFile, File 
+from fastapi import APIRouter, Depends, Path, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
@@ -16,7 +16,9 @@ from dishka.integrations.fastapi import FromDishka
 router = APIRouter()
 
 
-@router.get("/group/{group_id}/post/{post_id}/comment/", response_model=List[CommentResponse])
+@router.get(
+    "/group/{group_id}/post/{post_id}/comment/", response_model=List[CommentResponse]
+)
 @inject
 async def read_comments(
     post_id: int = Path(..., ge=1),
@@ -31,7 +33,10 @@ async def read_comments(
         raise domain_to_http_exception(e)
 
 
-@router.get("/group/{group_id}/post/{post_id}/comment/{comment_id}", response_model=CommentResponse)
+@router.get(
+    "/group/{group_id}/post/{post_id}/comment/{comment_id}",
+    response_model=CommentResponse,
+)
 @inject
 async def read_comment(
     post_id: int = Path(..., ge=1),
@@ -65,7 +70,10 @@ async def create_comment(
         raise domain_to_http_exception(e)
 
 
-@router.patch("/group/{group_id}/post/{post_id}/comment/{comment_id}", response_model=CommentResponse)
+@router.patch(
+    "/group/{group_id}/post/{post_id}/comment/{comment_id}",
+    response_model=CommentResponse,
+)
 @inject
 async def update_comment_partial(
     post_id: int = Path(..., ge=1),
@@ -86,7 +94,10 @@ async def update_comment_partial(
         raise domain_to_http_exception(e)
 
 
-@router.put("/group/{group_id}/post/{post_id}/comment/{comment_id}", response_model=CommentResponse)
+@router.put(
+    "/group/{group_id}/post/{post_id}/comment/{comment_id}",
+    response_model=CommentResponse,
+)
 @inject
 async def update_comment_full(
     post_id: int = Path(..., ge=1),
@@ -108,7 +119,8 @@ async def update_comment_full(
 
 
 @router.delete(
-    "/group/{group_id}/post/{post_id}/comment/{comment_id}", status_code=status.HTTP_204_NO_CONTENT
+    "/group/{group_id}/post/{post_id}/comment/{comment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 @inject
 async def delete_comment(
@@ -124,6 +136,7 @@ async def delete_comment(
         return None
     except AppException as e:
         raise domain_to_http_exception(e)
+
 
 @router.post(
     "/group/{group_id}/post/{post_id}/comment/{comment_id}/image/",

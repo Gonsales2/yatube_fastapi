@@ -6,7 +6,10 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy import text
 from sqlalchemy.pool import NullPool
-
+from dishka import make_async_container
+from dishka.integrations.fastapi import setup_dishka
+from app.di.providers import  all_providers
+from app.di.container import create_container
 from app.main import app
 from app.database.base import Base
 from app.database.session import get_db
@@ -98,18 +101,37 @@ async def clean_tables(setup_test_db):
 
     yield
 
+@pytest.fixture(scope="session")
+def test_dishka_container():
+    """Создание контейнера один раз на сессию тестов"""
+    return create_container()
+
+
+from dishka import FromDishka, make_async_container
+from contextlib import asynccontextmanager
 
 @pytest.fixture
-async def client() -> AsyncGenerator[AsyncClient, None]:
-    """Асинхронный клиент для тестирования API"""
+async def client(test_dishka_container) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides[get_db] = override_get_db
+    app.state.dishka_container = test_dishka_container
+    original_call = app.__call__
+    
+    @asynccontextmanager
+    async def wrapped_call(scope, receive, send):
+        async with test_dishka_container.context() as request_container:
+            scope["dishka_container"] = request_container
+            async with request_container.context():
+                yield await original_call(scope, receive, send)
+    
     transport = ASGITransport(app=app)
     async with AsyncClient(
-        transport=transport, base_url="http://test", follow_redirects=False
+        transport=transport, 
+        base_url="http://test",
+        follow_redirects=True
     ) as ac:
         yield ac
+    
     app.dependency_overrides.clear()
-
 
 @pytest.fixture
 async def test_user(client: AsyncClient) -> Dict:
@@ -120,8 +142,10 @@ async def test_user(client: AsyncClient) -> Dict:
     }
     response = await client.post("/api/register/", json=user_data)
     if response.status_code not in [HTTPStatus.CREATED, HTTPStatus.CONFLICT]:
-        pytest.fail(f"Не удалось подготовить пользователя: {response.status_code} {response.text}")
-    
+        pytest.fail(
+            f"Не удалось подготовить пользователя: {response.status_code} {response.text}"
+        )
+
     return user_data
 
 
@@ -131,6 +155,7 @@ async def auth_token(client: AsyncClient, test_user: Dict) -> str:
     response = await client.post(
         "/api/api-token-auth/",
         data={"username": test_user["username"], "password": test_user["password"]},
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
     assert response.status_code == HTTPStatus.OK
     return response.json()["access_token"]
@@ -161,4 +186,3 @@ async def test_group(auth_headers: Dict) -> Dict:
                 "slug": group.slug,
                 "description": group.description,
             }
-

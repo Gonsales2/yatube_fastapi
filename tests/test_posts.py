@@ -4,12 +4,15 @@ from typing import Dict
 from http import HTTPStatus
 
 
+
 class TestCreatePost:
     @pytest.mark.asyncio
     async def test_create_post_success(self, client: AsyncClient, auth_headers: Dict):
         """Успешное создание поста"""
         response = await client.post(
-            "/api/", json={"text": "Test post content"}, headers=auth_headers
+            f"/api/group/{test_group['id']}/post",
+            json={"text": "Test post content"}, 
+        headers=auth_headers
         )
         assert (
             response.status_code == HTTPStatus.CREATED

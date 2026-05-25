@@ -37,7 +37,7 @@ class ServiceProvider(Provider):
 
 class DatabaseProvider(Provider):
     @provide(scope=Scope.REQUEST)
-    async def get_session(self) -> AsyncIterable[AsyncSession]:  # ← КРИТИЧНО!
+    async def get_session(self) -> AsyncIterable[AsyncSession]: 
         async with AsyncSessionLocal() as session:
             try:
                 yield session

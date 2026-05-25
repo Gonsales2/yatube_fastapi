@@ -10,6 +10,7 @@ from app.exceptions import (
 from app.models.user import User
 from fastapi import UploadFile, File
 
+
 class CommentUseCase:
     def __init__(
         self,
@@ -115,6 +116,7 @@ class CommentUseCase:
         files: List[UploadFile],
     ) -> dict:
         from app.api.v1.upload import save_image, validate_image
+
         if not await self.post_repo.get(post_id):
             raise NotFoundException(resource_type="Пост", resource_id=post_id)
 
@@ -134,20 +136,18 @@ class CommentUseCase:
 
         existing = await self.image_repo.get_by_comment(comment_id)
         next_order = len(existing)
-        
 
         image_paths = []
         for idx, file in enumerate(files):
             validate_image(file)
             path = await save_image(file, "comments")
             image_paths.append(path)
-        
 
         await self.image_repo.add_many(comment_id, image_paths)
 
         comment_with_images = await self.comment_repo.get_with_relations(comment_id)
         return self._serialize(comment_with_images)
-    
+
     async def add_image_to_comment(
         self,
         user: User,
@@ -156,21 +156,19 @@ class CommentUseCase:
         file: UploadFile,
     ) -> dict:
         from app.api.v1.upload import save_image, validate_image
-        
 
         if not await self.post_repo.get(post_id):
             raise NotFoundException(resource_type="Пост", resource_id=post_id)
-        
+
         comment = await self.comment_repo.get(comment_id)
         if not comment or comment.post_id != post_id:
             raise NotFoundException(resource_type="Комментарий", resource_id=comment_id)
-        
 
         if not self.comment_repo.can_modify(comment, user.id):
             raise PermissionDeniedException(
                 action="Добавление изображения", resource_type="комментария"
             )
-  
+
         existing = await self.image_repo.get_by_comment(comment_id)
         if existing:
             raise ValidationError(
@@ -181,15 +179,16 @@ class CommentUseCase:
         validate_image(file)
         image_path = await save_image(file, "comments")
 
-        await self.image_repo.create({
-            "image": image_path,
-            "order": 0,
-            "comment_id": comment_id,
-        })
-        
+        await self.image_repo.create(
+            {
+                "image": image_path,
+                "order": 0,
+                "comment_id": comment_id,
+            }
+        )
+
         comment_with_image = await self.comment_repo.get_with_relations(comment_id)
         return self._serialize(comment_with_image)
-    
 
     @staticmethod
     def _serialize(comment) -> dict:

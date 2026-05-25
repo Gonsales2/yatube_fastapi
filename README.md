@@ -17,10 +17,12 @@ pip install --upgrade "passlib[bcrypt]"
 pip install bcrypt==3.2.2
 pip install psycopg2-binary
 pip install httpx
-pip install  jose
+pip install jose
 pip install python-jose[cryptography]
 pip install pydantic-settings
 pip install asyncpg
 pip install python-multipart
 pip install aiofiles
 pip install pytest pytest-asyncio httpx
+pip install dishka
+pip install pillow

@@ -106,79 +106,83 @@ class PostUseCase:
         updated_post = await self.post_repo.update(post, update_data)
         updated_with_images = await self.post_repo.get_with_images(updated_post.id)
         return self._serialize_post(updated_with_images)
-    
-    async def add_images_to_post(
-            self,
-            user: User,
-            post_id: int,
-            files: List[UploadFile],
-        ) -> dict:
-            
-            post = await self.post_repo.get(post_id)
-            if not post:
-                raise NotFoundException(resource_type="Пост", resource_id=post_id)
-            
-            if not self.post_repo.can_modify(post, user.id):
-                raise PermissionDeniedException(
-                    action="Добавление изображений", resource_type="поста"
-                )
 
-            if not files:
-                raise ValidationError(field="files", message="Не выбрано ни одного файла")
-            if len(files) > 10:
-                raise ValidationError(field="files", message="Максимум 10 изображений")
-            
-            existing = await self.image_repo.get_by_post(post_id)
-            next_order = len(existing)
-            
-            for idx, file in enumerate(files):
-                validate_image(file)
-                image_path = await save_image(file, "posts")
-                
-                await self.image_repo.create({
+    async def add_images_to_post(
+        self,
+        user: User,
+        post_id: int,
+        files: List[UploadFile],
+    ) -> dict:
+
+        post = await self.post_repo.get(post_id)
+        if not post:
+            raise NotFoundException(resource_type="Пост", resource_id=post_id)
+
+        if not self.post_repo.can_modify(post, user.id):
+            raise PermissionDeniedException(
+                action="Добавление изображений", resource_type="поста"
+            )
+
+        if not files:
+            raise ValidationError(field="files", message="Не выбрано ни одного файла")
+        if len(files) > 10:
+            raise ValidationError(field="files", message="Максимум 10 изображений")
+
+        existing = await self.image_repo.get_by_post(post_id)
+        next_order = len(existing)
+
+        for idx, file in enumerate(files):
+            validate_image(file)
+            image_path = await save_image(file, "posts")
+
+            await self.image_repo.create(
+                {
                     "image": image_path,
                     "order": next_order + idx,
                     "post_id": post_id,
-                })
-            
-            post_with_images = await self.post_repo.get_with_images(post_id)
-            return self._serialize_post(post_with_images)
+                }
+            )
+
+        post_with_images = await self.post_repo.get_with_images(post_id)
+        return self._serialize_post(post_with_images)
 
     async def add_image_to_post(
-            self,
-            user: User,
-            post_id: int,
-            file: UploadFile,
-        ) -> dict:
-            from app.api.v1.upload import save_image, validate_image
-            
-            post = await self.post_repo.get(post_id)
-            if not post:
-                raise NotFoundException(resource_type="Пост", resource_id=post_id)
-            
-            if not self.post_repo.can_modify(post, user.id):
-                raise PermissionDeniedException(
-                    action="Добавление изображения", resource_type="поста"
-                )
-            
-            existing = await self.image_repo.get_by_post(post_id)
-            if existing:
-                raise ValidationError(
-                    field="file",
-                    message="К посту уже добавлено изображение. Разрешено только одно.",
-                )
-            
-            validate_image(file)
-            image_path = await save_image(file, "posts")
-            
-            await self.image_repo.create({
+        self,
+        user: User,
+        post_id: int,
+        file: UploadFile,
+    ) -> dict:
+        from app.api.v1.upload import save_image, validate_image
+
+        post = await self.post_repo.get(post_id)
+        if not post:
+            raise NotFoundException(resource_type="Пост", resource_id=post_id)
+
+        if not self.post_repo.can_modify(post, user.id):
+            raise PermissionDeniedException(
+                action="Добавление изображения", resource_type="поста"
+            )
+
+        existing = await self.image_repo.get_by_post(post_id)
+        if existing:
+            raise ValidationError(
+                field="file",
+                message="К посту уже добавлено изображение. Разрешено только одно.",
+            )
+
+        validate_image(file)
+        image_path = await save_image(file, "posts")
+
+        await self.image_repo.create(
+            {
                 "image": image_path,
                 "order": 0,
                 "post_id": post_id,
-            })
-            
-            post_with_image = await self.post_repo.get_with_images(post_id)
-            return self._serialize_post(post_with_image)
+            }
+        )
+
+        post_with_image = await self.post_repo.get_with_images(post_id)
+        return self._serialize_post(post_with_image)
 
     @staticmethod
     def _serialize_post(post) -> dict:
